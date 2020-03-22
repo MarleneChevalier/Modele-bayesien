@@ -1,0 +1,424 @@
+---
+title: "Statistique Bayésienne"
+author: "Marlène Chevalier"
+date: " mars 2020"
+output: html_document
+---
+
+<style type="text/css">
+body{ /* Normal  */
+font-size: 12px;
+}
+td {  /* Table  */
+font-size: 14px;
+}
+h1.title {
+font-size: 14px;
+color: Blue;
+}
+
+h1 { /* Header 1 */
+font-size: 18px;
+color: Blue;
+}
+h2 { /* Header 2 */
+font-size: 14px;
+color: Blue;
+}
+h3 { /* Header 3 */
+font-size: 12px;
+color: Blue;
+}
+</style>
+
+<style>
+#TOC {
+  color: Blue; 
+}
+</style>
+
+
+```{r setup, echo=FALSE,warning=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = FALSE,warning=FALSE)
+```
+
+
+```{r libr, include=FALSE}
+library(knitr)
+library(kableExtra)
+library(plotly)
+library("BAS")
+library(corrplot)
+library(Pareto)
+
+```
+
+
+## Sujet : attractivité des lycées de l'académie de Versailles  
+
+L'étude concerne l'attractivité des lycées de l'académie de Versailles en 2012.  Elle est mesurée par établissement et par matière en attribuant un nombre de points à chaque couple (établissement, discipline). Celui - ci constitue le seuil de points de carrière à avoir pour un enseignant qui envisage une mutation dans l'établissement et dans une matière donnée.Nous allons étudier ce nombre de points dans le cadre bayésien.
+
+Source : fichier **mutations.csv**
+
+```{r chargmt}
+data= read.csv("mutations.csv")
+d= data
+attach(d)
+
+#caractéristiques du jeu de données
+dim= dim(d)
+n= dim[1] # nombre d'individus
+p= dim[2]-1 # nombre de variables explicatives
+Covar= as.matrix(d[, (-6)]) # matrice des variables explicatives
+Y= as.matrix(d[,6]) # vecteur réponse Y=Barre
+```
+
+**Description rapide des données :  **
+
+Ce fichier est constitué de `r n` couples (établissement, discipline) différents (en ligne) et `r p` variables explicatives.
+La variable d'intérêt, le nombre de points pour chaque etablissement et discipline est *Barre*.
+Les variables explicatives disponibles sont :  
+
+  - les identifiants de l'établissement (code, nom, ville)  
+  - les matières  
+  - les effectifs, les taux bruts et attendus de réussite, des series de bac général 
+  - les effectifs, les taux bruts et attendus d'accès au bac des classes de seconde et première  
+  - les taux de réussite obtenus et attendus au bac  
+  
+```{r retrait}
+##Renommer les variables
+
+colnames(d)[colnames(d)=="effectif_presents_serie_l"]= "effpre.l"
+colnames(d)[colnames(d)=="effectif_presents_serie_es"]= "effpre.es"
+colnames(d)[colnames(d)=="effectif_presents_serie_s"]= "effpre.s"
+colnames(d)[colnames(d)=="taux_brut_de_reussite_serie_l"]= "tbr.l"
+colnames(d)[colnames(d)=="taux_brut_de_reussite_serie_es"]= "tbr.es"
+colnames(d)[colnames(d)=="taux_brut_de_reussite_serie_s"]= "tbr.s"
+colnames(d)[colnames(d)=="taux_reussite_attendu_serie_l"]= "tra.l"
+colnames(d)[colnames(d)=="taux_reussite_attendu_serie_es"]= "tra.es"
+colnames(d)[colnames(d)=="taux_reussite_attendu_serie_s"]= "tra.s"
+colnames(d)[colnames(d)=="effectif_de_seconde"]= "eff.2"
+colnames(d)[colnames(d)=="effectif_de_premiere"]= "eff.1"
+colnames(d)[colnames(d)=="taux_acces_brut_seconde_bac"]= "tab.2bac"
+colnames(d)[colnames(d)=="taux_acces_attendu_seconde_bac"]= "taa.2bac"
+colnames(d)[colnames(d)=="taux_acces_brut_premiere_bac"]= "tab.1bac"
+colnames(d)[colnames(d)=="taux_acces_attendu_premiere_bac"]= "taa.1bac"
+colnames(d)[colnames(d)=="taux_brut_de_reussite_total_series"]= "tbr.tot"
+colnames(d)[colnames(d)=="taux_reussite_attendu_total_series"]= "tra.tot"
+
+# regroupement des matières par specialité (serie)
+d$SpeMat="TEC"
+d$SpeMat[d$Matiere %in% c("MATHS","S. V. T.","MATH.SC.PH","PHY.CHIMIE")]="SCI"
+d$SpeMat[d$Matiere %in% c("LET ANGLAI","LET ESPAGN","LET MODERN","LET.HIS.GE","LETT CLASS","PHILO")]="LIT"
+d$SpeMat[d$Matiere %in% c("ALLEMAND","ANGLAIS","ARTS PLAST","ESPAGNOL","ITALIEN")]="LVI"
+d$SpeMat[d$Matiere %in% c("HIST. GEO.")]="HGE"
+d$SpeMat[d$Matiere %in% c("SC.ECO.SOC")]="ECO"
+d$SpeMat[d$Matiere %in% c("E. P. S")]="EPS"
+
+# regroupement de taux brut de réussite totale
+d$RgtTbr="NA"
+d$RgtTbr[(64<=d$tbr.tot)&(82>d$tbr.tot)]="1"
+d$RgtTbr[(82<=d$tbr.tot)&(86>d$tbr.tot)]="2"
+d$RgtTbr[(86<=d$tbr.tot)&(91>d$tbr.tot)]="3"
+d$RgtTbr[(91<=d$tbr.tot)]="4"
+
+# jeu réduit à ces variables numériques
+dred=d[, -c(1,2,3,4,5,24,25)] #jeu avec uniquement les variables numériques explicatives et Barre
+X = as.matrix(d[, -c(1,2,3,4,5,6,24,25)]) #variables numériques explicatives
+
+```
+
+**Variables renomées**
+
+```{r tabvar}
+table_var=data.frame(Variable_originale=c("effectif_presents_serie_l","effectif_presents_serie_es","effectif_presents_serie_s","taux_brut_de_reussite_serie_l","taux_brut_de_reussite_serie_es","taux_brut_de_reussite_serie_s","taux_reussite_attendu_serie_l","taux_reussite_attendu_serie_es","taux_brut_de_reussite_serie_s","effectif_de_seconde","effectif_de_premiere","taux_acces_brut_seconde_bac","taux_acces_attendu_seconde_bac","taux_acces_brut_premiere_bac","taux_acces_attendu_premiere_bac","taux_brut_de_reussite_total_series","taux_reussite_attendu_total_series" ),Variable_renommee= c("effpre.l","effpre.es","effpre.s","tbr.l","tbr.es","tbr.s","tra.l","tra.es","tra.s","eff.2","eff.1","tab.2bac","taa.2bac","tab.1bac","taa.1bac","tbr.tot","tra.tot"))
+                     
+kable(table_var,format="markdown",caption="Variable renommée")
+```
+
+**regroupement de matières**
+
+```{r tab regtmat}
+
+table_regtmat=data.frame(SCIENCE_SCI=c("MATHS","S. V.T.","MATH.SC.PH","PHY.CHIMIE","",""),LITTERAIRE_LIT=c("LET ANGLAI","LET ESPAGN","LET MODERN","LET.HIS.GE","LETT CLASS","PHILO"),LANGUES_LVI=c("ALLEMAND","ANGLAIS","ARTS PLAST","ESPAGNOL","ITALIEN",""), HIST.GEO_HGE=c("HIST. GEO.","","","","",""),ECONOMIE=c("SC.ECO.SOC","","","","",""),EPS=c("E. P. S","","","","",""),TECHNIQUE=c("TEC","","","","",""))
+                     
+kable(head(table_regtmat),format="markdown",caption="Matière")
+```
+
+
+**Distribution des points de mutation**
+
+```{r explo1}
+mean.Barre=mean(Barre)
+median.Barre=median(Barre)
+min.Barre=min(Barre)
+max.Barre=max(Barre)
+
+table_statBarre=data.frame(Min_Barre=min.Barre, Mediane_Barre=median.Barre,Moyenne_Barre=mean.Barre,Max_Barre=max.Barre)
+                     
+kable(head(table_statBarre),format="markdown",digit=0)
+
+hist(Barre,main="", xlab="nb points", ylab="représentativité" )
+abline(v = mean(Barre), col="blue", lwd=3, lty=2)
+abline(v = median(Barre), col="green", lwd=3, lty=2)
+legend("topright",legend=c("moyenne","mediane"), col=c("blue","green"),lwd=3, lty=2)
+
+```
+
+La distribution de *Barre* est décrite sur l'intervalle [21;2056] avec une forte concentration sur les petites valeurs (valeur médiane à 196 points).  
+
+```{r explo2}
+
+boxplot(d$Barre~d$SpeMat,xlab="matière",ylab="nb points mutation")
+legend(-5,2,c("ECO:Economie","EPS:Sport","HGE:Hist.Géo","LIT:Mat spec literraire", "LV:Langues", "SCI:Mat spec scientifique","TEC:Mat spec technique"), cex=0.5)
+
+```
+
+Le nombre de points moyens par type de matière est équivalent, avec un niveau un peu plus élévé pour l'EPS.
+
+```{r explo3}
+boxplot(d$Barre~d$RgtTbr,xlab="niveau de réussite au bac",ylab="nb points mutation")
+legend("topleft",c("1 -> [64%-81%]","2 -> [82%-85%]","3 -> [86%-90%]","4 -> sup 90%"))
+
+```
+
+
+```{r explo4, eval=FALSE}
+# exploration graphique
+hist(Barre, main="distribution des points accès aux mutations", xlab="nb points", ylab="représentativité" )
+par(mfrow = c(1,3))
+plot(effpre.l~Barre, data=d,xlab="nb points",ylab="effectif serie L")
+plot(effpre.es~Barre, data=d,xlab="nb points",ylab="effectif serie ES")
+plot(effpre.s~Barre, data=d,xlab="nb points",ylab="effectif serie S")
+
+par(mfrow = c(2,4))
+plot(tbr.l~Barre, data=d,xlab="nb points",ylab="taux de réussite série L")
+plot(tbr.es~Barre, data=d,xlab="nb points",ylab="taux de réussite série ES")
+plot(tbr.s~Barre, data=d,xlab="nb points",ylab="taux de réussite série S")
+plot(tbr.tot~Barre, data=d,xlab="nb points",ylab="tx réussite toutes séries")
+plot(tra.l~Barre, data=d,xlab="nb points",ylab="tx de réussite attendu série L")
+plot(tra.es~Barre, data=d,xlab="nb points",ylab="tx de réussite attendu série ES")
+plot(tra.s~Barre, data=d,xlab="nb points",ylab="tx de réussite attendu série S")
+plot(tra.tot~Barre, data=d,xlab="nb points",ylab="tx réussite attendu toutes séries")
+
+par(mfrow = c(2,2))
+plot(tab.2bac~Barre, data=d,xlab="nb points",ylab="tx accès brut 2nde - Bac")
+plot(tab.1bac~Barre, data=d,xlab="nb points",ylab="tx accès brut 1ère - Bac")
+plot(taa.2bac~Barre, data=d,xlab="nb points",ylab="tx accès attendu 2nde - Bac")
+plot(taa.1bac~Barre, data=d,xlab="nb points",ylab="tx accès attendu 1ère - Bac")
+```
+  
+**Corrélations**
+
+```{r cortrbtra}
+#coefficients de correlation
+
+cordred=cor(dred)
+corrplot(cordred,type="lower",tl.col="black")
+
+```
+
+Nous observons de fortes corrélations entre :  
+
+   - les variables effectifs (variables eff)  
+   - les taux de réussite au bac bruts et attendus sauf pour la section littéraire (variables tbr et tra)   
+   - les taux d'accès au bac attendus et bruts (variables taa et tab)  
+
+## Analyse sur l'ensemble sur le jeu de données complet  
+
+### Regression linéaire bayésienne  
+
+**1/ Estimation des coefficients par l'espérance a posteriori**  
+
+Nous allons calculer une estimation des coefficients de la regression lineaire bayésienne (Beta) par leur espérance a posteriori. 
+Nous utilisons pour cela la loi a priori de Zellner g et les coefficients estimés (betahat) par une regression linéaire gaussienne :
+
+beta/sigma², X suit a posteriori loi normale :  
+d'espérance = g/(g+1) x betahat   
+de variance = (g/g+1) x s2 x (X tX)-1
+
+Nous prenons g=n soit g=`r n`
+
+```{r rlbman}
+
+# calcul de betahat et s2
+regman = lm(Y~X)
+betahat = regman$coefficients
+residuals = regman$residuals
+
+s2 = t(residuals)%*%residuals
+
+# recuperation des betahat 
+X = cbind(1, X) # on ajoute une colonne de 1 pour beta_0
+
+# inférence bayésienne
+g = n
+# espérance a posteriori des coefficients :
+ebbeta=t(as.matrix(betahat * g / (g + 1)))
+
+
+# espérance a posteriori de sigma^2
+a = n/2
+b = s2/2 + 1/(2*g+2) * ((t(betahat)%*%t(X)) %*% (X%*%betahat))
+ebsigma2=b / (a-1)
+
+ebsigma=sqrt(g/(g+1) *as.vector(ebsigma2)* diag(solve(t(X)%*%X)))
+pvalue= pnorm(ebbeta/ebsigma)
+
+tebbeta=t(ebbeta)
+tpvalue=t(pvalue)
+
+table_ebcoef=data.frame(coef_estime=tebbeta, pvaleur=tpvalue)
+kable(table_ebcoef,format="markdown",digit=3)
+
+```
+
+Nous constatons que seules 2 variables explicatives sont significativement différentes de zéro (pvaleur<5%):  
+
+  - taux de réussite en section L : betahat (tra.l) = -14.257  
+  - taux d'accès de la premiere au bac : betahat (tab.1bac) = -20.347   
+
+
+**2/ Fonction regresssion bayésienne : bas.lm**
+
+Affichage des 5 principaux modèles de probabilité représentés par leurs indicateurs d’inclusion avec :  
+
+  - le facteur Bayes (FB) de chaque modèle au modèle ayant la plus grande probabilité  marginale,  
+  - la probabilité a posteriori des modèles,  
+  - R2,  
+  - dim (qui comprend l’intercept),   
+  - le log de la probabilité marginale.  
+
+L'etat des coefficients présente pour chaque coefficient de la régression :    
+
+*postmean* : la moyenne marginale a posteriori du coefficient  
+*post SD* : l'ecart type a posteriori du coefficient  
+*post p(B != 0)* : probabilité marginale que le coefficient soit différent de 0  
+
+```{r rlbauto}
+
+lmbay=bas.lm(Barre~.,
+       data = dred, prior = "g-prior",alpha=n)
+coefficients(lmbay)
+
+```
+
+Les probabilités que les coefficients soient différents de 0 sont toutes tres faible . La plus importante est de 16.6% et concerne le taux accès attendu de la première au bac (taa.1bac).  
+
+Les graphiques de la regression bayésienne :  
+
+   - Le premier est un graphique des résidus et des valeurs ajustées dans le modèle bayésien de calcul de la moyenne. Idéalement, si nos hypothèses de modèle se maintiennent, nous ne verrons pas de valeurs aberrantes ou de variance importante.   
+
+-  Le second graphique montre la probabilité cumulative des modèles dans l’ordre où ils sont échantillonnés.     
+
+-  Le troisième graphique montre la dimension de chaque modèle (le nombre de coefficients de régression, y compris l’interception) par rapport au log de la probabilité marginale du modèle.    
+
+- Le dernier graphique montre les probabilités marginales d’inclusion postérieure pour chacune des covariables. Les variables présentant des probabilités d’inclusion élevées (> 0,5 en rouge) sont généralement importantes pour expliquer les données ou les prévisions, mais les probabilités d’inclusion marginales peuvent être faibles s’il y a des prédicteurs fortement corrélés, semblables à la façon dont les p-valeurs peuvent être importantes en présence de multicollinéarité.  
+
+```{r rlbautograph}
+par(mfrow = c(2,2))
+plot(lmbay,ask=F)
+```
+
+Ce modèle n'apparait pas comme satisfaisant car il ne présente pas un ajustement satisfaisant (Graphe : variance importante). De plus les probabilités marginales des covariables sont faibles, ce qui présage d'une importante collinéarité des covariables.
+
+
+###Regression linéaire gaussienne
+
+```{r rlg}
+
+lm=lm(Barre~.,dred)
+summary(lm)
+```
+
+La regression linéaire gaussienne donne également des résultats peu satisfaisant : seule le coefficient de la variable " taux de réussite attendu en serie L - tra.l " est significativement non nul (pvalue=3%). Ce résultat est  aussi une marque de collinéarité entre les covariables.
+
+##Choix de modèle
+
+
+**1/ Choix de modèle regression bayésien: GIBBS**
+
+Il s'agit de choisir les covariables à partir de l'algorithme de GIBBS. Cet algorithme donne la probabilité que chaque covariable soit retenue comme variables explicatives : la probabilité que gamma(covariable j) = 1. Plus cette probabilité est proche de 1 , plus il rest probable que gamma(covariable j) soit égal à  1 , et donc plus il est probable que la covariable j soit signicative pour expliquer la variable réponse. 
+
+** Algorithme de GIBBS sur le jeu complet de données (variables numériques)**
+
+```{r marglkd}
+# fonction pour calculer la log-vraisemblance marginale
+
+marglkd = function(gamma, X, g=n){
+  q=sum(gamma)
+  X1=X[ ,c(TRUE,gamma)]
+  if(q==0){return( -n/2 * log(t(Y)%*%Y))}
+  m = -q/2*log(g+1) -
+    n/2*log(t(Y)%*%Y - g/(g+1)* t(Y)%*% X1 %*%
+              solve(t(X1)%*%X1) %*%t(X1)%*%Y)
+return(m)
+ }
+
+
+```
+
+
+```{r gibbs}
+set.seed(159)
+
+# algorithme de Gibbs
+niter = 1e4 # nombre d'itérations
+pcol=17 # nombre de covariables
+gamma = matrix(F, nrow = niter, ncol = pcol) # initialisation à faux de la matrice gamma (ninter,ncol)
+gamma0 = sample(c(T, F), size = pcol, replace = TRUE) # initialisation aléatoire du vecteur gamma0 : valeurs de vrai et faux pour chaque covariable
+lkd = rep(0, niter) # initialisation des ninter valeurs de vraissemblances à 0
+modelnumber = rep(0, niter) # initialisation des ninter nombre de modèle à 0
+
+oldgamma = gamma0
+for(i in 1:niter){
+  newgamma = oldgamma
+  for(j in 1:pcol){
+    g1 = newgamma; g1[j]=TRUE
+    g2 = newgamma; g2[j]=FALSE
+    ml1 = marglkd(g1, X,n)
+    ml2 = marglkd(g2, X,n)
+    p = c(ml1,ml2)-min(ml1,ml2)
+    # On souhaite tirer depuis une Bernoulli, avec probabilité de tirer TRUE égale à exp(p[1])/(exp(p[1])+exp(p[2])).
+    # C'est ce que fait la ligne suivante. Notons que la fonction sample() calcule la constante de normalisation.
+    newgamma[j] = sample(c(T,F), size=1, prob=exp(p))
+  }
+  gamma[i,] = newgamma
+  lkd[i] = marglkd(newgamma, X )
+  modelnumber[i] = sum(newgamma*2^(0:16))
+  oldgamma = newgamma
+}
+
+pgamma=colMeans(gamma) # probabilité que l'indicatrice de chaque covariable soit =1
+rbind(colnames(X[,-1]),pgamma)
+
+```
+
+Ici, les probabilités pour choisir les covariables explicatives sont peu importantes : il semble que ces variables testées ensemble n'amènent pas à un choix de modèle pertinent.
+Les plus fortes probabilités d'inclusion dans le modèle sont pour les variables taux_acces_attendu_premiere_bac "taa.1bac" (33,36%), taux_acces_attendu_seconde_bac "taa.2bac"" (19,12%), taux brut de réussite "tbr.tot" (12,13%), taux attendu de réussite  "tra.tot" (11.67%). 
+
+
+** Algorithme de GIBBS sur le jeu de données non corrélées**
+
+
+
+
+
+
+**2/ Choix de modèle regression linéaire**  
+
+Sur l'ensemble des variables explicatives numériques :
+
+```{r choixlmd}
+step(lm,direction="both")
+```
+
+
+Le choix de modèle à partir d'un nombre plus resteint de covaraibles (conservation des variables non corrélées), donne un AIC plus important que sur le modèle complet.
+
+```{r choixlmd2,eval=FALSE}
+lm2=lm(Barre~effpre.l+effpre.es+effpre.s+eff.2+eff.1+tab.2bac+d$tbr.l+d$tra.l+d$tbr.tot+d$SpeMat,d)
+summary(lm2)
+step(lm2,direction="both")
+```
