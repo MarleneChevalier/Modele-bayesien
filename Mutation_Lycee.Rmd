@@ -197,31 +197,6 @@ legend("topleft",c("1 -> [64%-81%]","2 -> [82%-85%]","3 -> [86%-90%]","4 -> sup 
 
 ```
 
-
-```{r explo4, eval=FALSE}
-# exploration graphique
-hist(Barre, main="distribution des points accès aux mutations", xlab="nb points", ylab="représentativité" )
-par(mfrow = c(1,3))
-plot(effpre.l~Barre, data=d,xlab="nb points",ylab="effectif serie L")
-plot(effpre.es~Barre, data=d,xlab="nb points",ylab="effectif serie ES")
-plot(effpre.s~Barre, data=d,xlab="nb points",ylab="effectif serie S")
-
-par(mfrow = c(2,4))
-plot(tbr.l~Barre, data=d,xlab="nb points",ylab="taux de réussite série L")
-plot(tbr.es~Barre, data=d,xlab="nb points",ylab="taux de réussite série ES")
-plot(tbr.s~Barre, data=d,xlab="nb points",ylab="taux de réussite série S")
-plot(tbr.tot~Barre, data=d,xlab="nb points",ylab="tx réussite toutes séries")
-plot(tra.l~Barre, data=d,xlab="nb points",ylab="tx de réussite attendu série L")
-plot(tra.es~Barre, data=d,xlab="nb points",ylab="tx de réussite attendu série ES")
-plot(tra.s~Barre, data=d,xlab="nb points",ylab="tx de réussite attendu série S")
-plot(tra.tot~Barre, data=d,xlab="nb points",ylab="tx réussite attendu toutes séries")
-
-par(mfrow = c(2,2))
-plot(tab.2bac~Barre, data=d,xlab="nb points",ylab="tx accès brut 2nde - Bac")
-plot(tab.1bac~Barre, data=d,xlab="nb points",ylab="tx accès brut 1ère - Bac")
-plot(taa.2bac~Barre, data=d,xlab="nb points",ylab="tx accès attendu 2nde - Bac")
-plot(taa.1bac~Barre, data=d,xlab="nb points",ylab="tx accès attendu 1ère - Bac")
-```
   
 **Corrélations**
 
@@ -241,7 +216,7 @@ Nous observons de fortes corrélations entre :
    - les taux de réussite au bac bruts et attendus (variables tbr et tra) sauf pour la section littéraire :  
      tbr.s /tba.s / tbr.es /tba.es / tbr.tot /tba.tot  
      
-   - les taux d'accès au bac attendus et bruts (variables taa et tab) , corrélées également au taux de réussite total au bac  
+   - les taux d'accès au bac attendus et bruts (variables taa et tab), corrélées également au taux de réussite total au bac  
     tab.2bac / taa.2bac / tab.1bac / taa.1bac
 
 # Regression linéaire 
@@ -250,7 +225,7 @@ Analyse sur l'ensemble sur le jeu de données complet
 
 ## Regression linéaire bayésienne  
 
-**1/ Estimation des coefficients par l'espérance a posteriori**  
+**Méthode 1 : Estimation des coefficients par l'espérance a posteriori**  
 
 Nous allons calculer une estimation des coefficients de la regression lineaire bayésienne (Beta) par leur espérance a posteriori. 
 Nous utilisons pour cela la loi a priori de Zellner g et les coefficients estimés (betahat) par une regression linéaire gaussienne :
@@ -301,7 +276,7 @@ Nous constatons que seules 2 variables explicatives sont significativement diff�
   - taux d'accès de la premiere au bac : betahat (tab.1bac) = -20.347   
 
 
-**2/ Fonction regresssion bayésienne : bas.lm**
+**Méthode 2 : Fonction regresssion bayésienne : bas.lm**
 
 Affichage des 5 principaux modèles de probabilité représentés par leurs indicateurs d’inclusion avec :  
 
@@ -357,11 +332,11 @@ La regression linéaire gaussienne donne également des résultats peu satisfais
 
 ##Choix de modèles
 
-**2.1 Choix de modèle regression bayésien: GIBBS**
+###Choix de modèle regression bayésien: GIBBS
 
 Il s'agit de choisir les covariables à partir de l'algorithme de GIBBS. Cet algorithme donne la probabilité que chaque covariable soit retenue comme variable explicative : la probabilité que gamma(covariable j) = 1. Plus cette probabilité est proche de 1, plus il est probable que gamma(covariable j) soit égal à  1 , et donc plus il est probable que la covariable j soit signicative pour expliquer la variable réponse (ici Barre). 
 
-** Algorithme de GIBBS sur le jeu complet de données (variables numériques)**
+**Algorithme de GIBBS sur le jeu complet de données (variables numériques)**
 
 ```{r marglkd}
 # fonction pour calculer la log-vraisemblance marginale
@@ -425,14 +400,14 @@ Il s'agit de regarder la convergence de l'algorithme de GIBBS en observant les t
 par(mfrow=c(1,4))
 for(i in 2:pcol) plot(rollapply(gamma[,i], width=100, FUN=mean), type="l", ylab=i, ylim=c(0,0.5) ) # moyenne lissée sur les 100 itérations
 
-burnin = 1000 # 1 000 itérations de burn-in
-gammab = modelnumber[(burnin+1):niter] # 9000 modèles (niter-burnin)
-res = as.data.frame(table(gammab)) # modèle et leur fréquence d'apparition
-odo = order(res$Freq, decreasing=T)[1:50] # ordonne de façon décroissante les 50 modèles les plus fréquents = choix de modèle
-modcho = res$gammab[odo] # 50 modèles choisis
-probtop50 = res$Freq[odo]/(niter-burnin) # probabilités des 50 modèles choisis
-indices = match(modcho, modelnumber) # indices des modèles choisis
-cbind(probtop50, gamma[indices, ]) # la composition de modèle et leur probalilité ordonnée de façon décroissante
+#burnin = 1000 # 1 000 itérations de burn-in
+#gammab = modelnumber[(burnin+1):niter] # 9000 modèles (niter-burnin)
+#res = as.data.frame(table(gammab)) # modèle et leur fréquence d'apparition
+#odo = order(res$Freq, decreasing=T)[1:50] # ordonne de façon décroissante les 50 modèles les plus fréquents = choix de modèle
+#modcho = res$gammab[odo] # 50 modèles choisis
+#probtop50 = res$Freq[odo]/(niter-burnin) # probabilités des 50 modèles choisis
+#indices = match(modcho, modelnumber) # indices des modèles choisis
+#cbind(probtop50, gamma[indices, ]) # la composition de modèle et leur probalilité ordonnée de façon décroissante
 ```
 
 Les figurent montrent des trajectoires stationnaires, sauf les graphes 12 et 14 qui sont encore très oscillants avant 8000 itérations.
@@ -488,7 +463,7 @@ rbind(colnames(Xred[,-1]),pgammared)
 
 Sur le jeu de données réduit à des variables non corrélées, deux d'entre elles ont une forte probabilité d'être retenue dans le modèle : le taux brut de réussite "tbr.tot" (60.3%) et le taux acces brut de la seconde au bac "tab.2bac"" (34.9%).
 
-**2.2 Choix de modèle regression linéaire**  
+###Choix de modèle regression linéaire  
 
 Nous utilisons ici la méthode de choix *step*, qui cumule les examens ascendant et descendant des variables (*both*).
 
@@ -514,7 +489,12 @@ Le choix de modèle à partir d'un nombre plus resteint de covariables (conserva
 
 ##Mutations en mathématiques et anglais
 
-**Mutation en anglais**
+La méthode de calcul des coefficients et leur significativité est celle de la regression bayésienne par l'espérance a posteriori (méthode 1).
+
+L'enseignement d'anglais correspond aux matières : ANGLAIS et LET ANGLAIS.
+L'enseignement des mathématiques correspond à la matière : MATHS.
+
+
 
 ```{r anaang}
 d.ang = d[d$Matiere == "ANGLAIS"| d$Matiere == "LET ANGLAI",] 
@@ -549,12 +529,11 @@ pvalue.ang= pnorm(ebbeta.ang/ebsigma.ang)
 tebbeta.ang=t(ebbeta.ang)
 tpvalue.ang=t(pvalue.ang)
 
-table_ebcoef.ang=data.frame(coef_estime=tebbeta.ang, pvaleur=tpvalue.ang)
-kable(table_ebcoef.ang,format="markdown",digit=3)
+#table_ebcoef.ang=data.frame(coef_estime=tebbeta.ang, pvaleur=tpvalue.ang)
+#kable(table_ebcoef.ang,format="markdown",digit=3)
 
 ```
 
-**Mutation en maths**
 
 ```{r anamath}
 d.math = d[d$Matiere == "MATHS",]
@@ -577,7 +556,6 @@ g.math = n.math
 # espérance a posteriori des coefficients :
 ebbeta.math=t(as.matrix(betahat.math * g.math/ (g.math + 1)))
 
-
 # espérance a posteriori de sigma^2
 a.math = n.math/2
 b.math = s2.math/2 + 1/(2*g.math+2) * ((t(betahat.math)%*%t(X.math)) %*% (X.math%*%betahat.math))
@@ -589,10 +567,20 @@ pvalue.math= pnorm(ebbeta.math/ebsigma.math)
 tebbeta.math=t(ebbeta.math)
 tpvalue.math=t(pvalue.math)
 
-table_ebcoef.math=data.frame(coef_estime=tebbeta.math, pvaleur=tpvalue.math)
-kable(table_ebcoef.math,format="markdown",digit=3)
+#table_ebcoef.math=data.frame(coef_estime=tebbeta.math, pvaleur=tpvalue.math)
+#kable(table_ebcoef.math,format="markdown",digit=3)
 ```
 
+Les coefficients et leur pvalue obtenus pour les enseignements d'anglais et de maths sont dans le tableau ci-dessous.
+
+```{r syntanmat}
+#varexp=cbind("intercept",table_var$Variable_originale)
+#varexp
+table_ebcoef.anmat=data.frame(coef_estime_ANG=tebbeta.ang, pvaleur_ANG=tpvalue.ang, coef_estime_MATH=tebbeta.math, pvaleur_MATH=tpvalue.math)
+kable(table_ebcoef.anmat,format="markdown",digit=3)
+```
+
+On remarque que les coefficients estimés des covariables, pour l'enseignement de l'Anglais sont de signes opposés à ceux obtenus pour l'enseignement des Maths. Donc leurs influences sont inverses sur le nombre de points de mutation.  
 
 #Loi de Pareto
 
@@ -602,7 +590,10 @@ On considère maintenant uniquement la variable *Barre* nombre de points nécess
 package : EnvStats
 fonction : rpareto(n=taille de l 'échantillon, location=m, shape = alpha)
 
-La loi de pareto est generée pour une variable Z. 
+La loi de pareto est générée pour une variable Z à valeur sur [m,+infini].
+m>0, alpha>0
+
+ici m =21 (min du nombre de points observés pour Barre).
 
 Selon 5 valeurs de alpha
 ```{r pareto}
@@ -654,7 +645,16 @@ ggplot(dfz, aes(x=z, color=alpha)) +
 ```
 
 
-## Loi a priori du paramètre alpha
+##Loi a priori du paramètre alpha
 
-## Loi a posteriori du paramètre alpha
+```{r}
+
+```
+
+
+##Loi a posteriori du paramètre alpha
+
+```{r}
+
+```
 
