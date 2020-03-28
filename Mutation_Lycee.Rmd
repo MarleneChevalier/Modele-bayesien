@@ -174,16 +174,21 @@ La distribution de *Barre* est décrite sur l'intervalle [21;2056] avec une fort
 
 ```{r tab regtmat}
 
-table_regtmat=data.frame(SCIENCE_SCI=c("MATHS","S. V.T.","MATH.SC.PH","PHY.CHIMIE","",""),LITTERAIRE_LIT=c("LET ANGLAI","LET ESPAGN","LET MODERN","LET.HIS.GE","LETT CLASS","PHILO"),LANGUES_LVI=c("ALLEMAND","ANGLAIS","ARTS PLAST","ESPAGNOL","ITALIEN",""), HIST.GEO_HGE=c("HIST. GEO.","","","","",""),ECONOMIE=c("SC.ECO.SOC","","","","",""),EPS=c("E. P. S","","","","",""),TECHNIQUE=c("TEC","","","","",""))
+table_regtmat=data.frame(SCIENCE_SCI=c("MATHS","S. V.T.","MATH.SC.PH","PHY.CHIMIE","",""),LITTERAIRE_LIT=c("LET ANGLAI","LET ESPAGN","LET MODERN","LET.HIS.GE","LETT CLASS","PHILO"),LANGUES_LVI=c("ALLEMAND","ANGLAIS","ARTS PLAST","ESPAGNOL","ITALIEN",""), HIST.GEO_HGE=c("HIST. GEO.","","","","",""),ECONOMIE_ECO=c("SC.ECO.SOC","","","","",""),EPS=c("E. P. S","","","","",""),TECHNIQUE_TEC=c("TEC","","","","",""))
                      
 kable(head(table_regtmat),format="markdown",caption="Matière")
 ```
 
 
 ```{r explo2}
+ggplot(d, aes(x=SpeMat, y=Barre)) +
+  geom_boxplot(width=1) +
+  labs(x="matière",y="nb points mutation") +
+  scale_x_discrete(labels=c("ECO","EPS","HGE","LIT","LV", "SCI","TEC")) 
 
-boxplot(d$Barre~d$SpeMat,xlab="matière",ylab="nb points mutation")
-legend(-5,2,c("ECO:Economie","EPS:Sport","HGE:Hist.Géo","LIT:Mat spec literraire", "LV:Langues", "SCI:Mat spec scientifique","TEC:Mat spec technique"), cex=0.5)
+
+#boxplot(d$Barre~d$SpeMat,xlab="matière",ylab="nb points mutation")
+#legend(-5,2,c("ECO","EPS","HGE","LIT", "LVI", "SCI","TEC"), cex=0.5)
 
 ```
 
@@ -192,9 +197,12 @@ Le nombre de points moyens par type de matière est équivalent, avec un niveau 
 **Barre en fonction du taux de réussite au bac**
 
 ```{r explo3}
-boxplot(d$Barre~d$RgtTbr,xlab="niveau de réussite au bac",ylab="nb points mutation")
-legend("topleft",c("1 -> [64%-81%]","2 -> [82%-85%]","3 -> [86%-90%]","4 -> sup 90%"))
-
+ggplot(d, aes(x=RgtTbr, y=Barre)) +
+  geom_boxplot(width=1) +
+  labs(x="niveau de réussite au bac",y="nb points mutation") +
+  scale_x_discrete(labels=c("[64%-81%]","[82%-85%]","[86%-90%]","sup 90%"))     
+  
+      
 ```
 
   
@@ -595,7 +603,8 @@ m>0, alpha>0
 
 ici m =21 (min du nombre de points observés pour Barre).
 
-Selon 5 valeurs de alpha
+densité de la variable Z selon 5 valeurs de alpha :
+
 ```{r pareto}
 set.seed(789)
 m=21
@@ -629,32 +638,35 @@ dfz4=data.frame(
   alpha=factor(alpha4)
 )
 
-alpha5=25
+alpha5=20
 z5=rpareto(n, m, alpha5)
 dfz5=data.frame(
   z=z5,
   alpha=factor(alpha5)
 )
 
-
 dfz=rbind.data.frame(dfz1,dfz2,dfz3,dfz4,dfz5)
 
 ggplot(dfz, aes(x=z, color=alpha)) +
-  geom_density()
+  geom_density(size=1.1) +
+  theme(legend.position ="bottom",
+        axis.line = element_line(colour="black"))
 
 ```
 
+Plus la valeur de alpha augmente, plus la densitié est forte sur les petites valeurs de Z et marque 2 oscillations puis tend vers 0 rapidement.
+Cependant, il semble qu'à partir d'une valeur seuil d'alpha (ici alpha=10), la densité perde en intensité et revienne à des niveaux déjà atteints par des valeurs d'alpha inférieures à ce seuil. Cette valeur seuil semble revenir périodiquement (ici on a observé le seuil pour alpha =10 et alpha=30).
 
 ##Loi a priori du paramètre alpha
 
-```{r}
+```{r prior}
 
 ```
 
 
 ##Loi a posteriori du paramètre alpha
 
-```{r}
+```{r posterior}
 
 ```
 
