@@ -68,7 +68,7 @@ library(zoo)
 
 # Sujet : attractivité des lycées de l'académie de Versailles  
 
-L'étude concerne l'attractivité des lycées de l'académie de Versailles en 2012.  Elle est mesurée par établissement et par matière en attribuant un nombre de points à chaque couple (établissement, discipline). Celui - ci constitue le seuil de points de carrière à avoir pour un enseignant qui envisage une mutation dans l'établissement et dans une matière donnée.Nous allons étudier ce nombre de points dans le cadre bayésien.
+L'étude concerne l'attractivité des lycées de l'académie de Versailles en 2012.  Elle est mesurée par établissement et par matière en attribuant un nombre de points à chaque couple (établissement, discipline). Celui - ci constitue le seuil de points de carrière à avoir pour un enseignant qui envisage une mutation dans l'établissement et dans une matière donnée. Nous allons étudier ce nombre de points dans le cadre bayésien.
 
 Source : fichier **mutations.csv**
 
@@ -148,7 +148,6 @@ table_var=data.frame(Variable_originale=c("effectif_presents_serie_l","effectif_
 kable(table_var,format="markdown",caption="Variable renommée")
 ```
 
-
 **Distribution des points de mutation : Barre**
 
 ```{r explo1}
@@ -205,7 +204,6 @@ ggplot(d, aes(x=RgtTbr, y=Barre)) +
       
 ```
 
-  
 **Corrélations**
 
 ```{r cortrbtra}
@@ -218,7 +216,7 @@ corrplot(cordred,type="lower",tl.col="black")
 
 Nous observons de fortes corrélations entre :  
 
-   - les variables effectifs des series, en seconde et première (variables eff) :  
+   - les variables effectifs des séries, en seconde et en première (variables eff) :  
       effpre.l / effpre.es / effpre.s / eff.1 /eff.2  
       
    - les taux de réussite au bac bruts et attendus (variables tbr et tra) sauf pour la section littéraire :  
@@ -235,7 +233,7 @@ Analyse sur l'ensemble sur le jeu de données complet
 
 **Méthode 1 : Estimation des coefficients par l'espérance a posteriori**  
 
-Nous allons calculer une estimation des coefficients de la regression lineaire bayésienne (Beta) par leur espérance a posteriori. 
+Nous allons calculer une estimation des coefficients de la regression linéaire bayésienne (Beta) par leur espérance a posteriori. 
 Nous utilisons pour cela la loi a priori de Zellner g et les coefficients estimés (betahat) par une regression linéaire gaussienne :
 
 beta/sigma², X suit a posteriori loi normale :  
@@ -260,7 +258,6 @@ X = cbind(1, X) # on ajoute une colonne de 1 pour beta_0
 g = n
 # espérance a posteriori des coefficients :
 ebbeta=t(as.matrix(betahat * g / (g + 1)))
-
 
 # espérance a posteriori de sigma^2
 a = n/2
@@ -294,10 +291,10 @@ Affichage des 5 principaux modèles de probabilité représentés par leurs indi
   - dim (qui comprend l’intercept),   
   - le log de la probabilité marginale.  
 
-L'etat des coefficients présente pour chaque coefficient de la régression :    
+L'état des coefficients présente pour chaque coefficient de la régression :    
 
 *postmean* : la moyenne marginale a posteriori du coefficient  
-*post SD* : l'ecart type a posteriori du coefficient  
+*post SD* : l'écart-type a posteriori du coefficient  
 *post p(B != 0)* : probabilité marginale que le coefficient soit différent de 0  
 
 ```{r rlbauto}
@@ -325,7 +322,7 @@ par(mfrow = c(2,2))
 plot(lmbay,ask=F)
 ```
 
-Ce modèle n'apparait pas comme satisfaisant car il ne présente pas un ajustement satisfaisant (Graphe : variance importante). De plus les probabilités marginales des covariables sont faibles, ce qui présage d'une importante collinéarité des covariables.
+Ce modèle n'apparait pas comme satisfaisant car il ne présente pas un ajustement satisfaisant (Graphe : variance importante). De plus, les probabilités marginales des covariables sont faibles, ce qui présage d'une importante collinéarité des covariables.
 
 
 ##Regression linéaire gaussienne
@@ -336,13 +333,13 @@ lm=lm(Barre~.,dred)
 summary(lm)
 ```
 
-La regression linéaire gaussienne donne également des résultats peu satisfaisant : les coefficients sont peu significatifs (Ce résultat est  aussi une marque de collinéarité entre les covariables) .Seul le coefficient de la variable "taux de réussite attendu en série L - tra.l " est significativement non nul (pvalue=3%). 
+La regression linéaire gaussienne donne également des résultats peu satisfaisant : les coefficients sont peu significatifs. (Ce résultat est aussi une marque de collinéarité entre les covariables).Seul le coefficient de la variable "taux de réussite attendu en série L - tra.l " est significativement non nul (pvalue=3%). 
 
 ##Choix de modèles
 
 ###Choix de modèle regression bayésien: GIBBS
 
-Il s'agit de choisir les covariables à partir de l'algorithme de GIBBS. Cet algorithme donne la probabilité que chaque covariable soit retenue comme variable explicative : la probabilité que gamma(covariable j) = 1. Plus cette probabilité est proche de 1, plus il est probable que gamma(covariable j) soit égal à  1 , et donc plus il est probable que la covariable j soit signicative pour expliquer la variable réponse (ici Barre). 
+Il s'agit de choisir les covariables à partir de l'algorithme de GIBBS. Cet algorithme donne la probabilité que chaque covariable soit retenue comme variable explicative : la probabilité que gamma(covariable j) = 1. Plus cette probabilité est proche de 1, plus il est probable que gamma(covariable j) soit égal à  1, et donc plus il est probable que la covariable j soit signicative pour expliquer la variable réponse (ici Barre). 
 
 **Algorithme de GIBBS sur le jeu complet de données (variables numériques)**
 
@@ -358,8 +355,6 @@ marglkd = function(gamma, X, g=n){
               solve(t(X1)%*%X1) %*%t(X1)%*%Y)
 return(m)
  }
-
-
 ```
 
 
@@ -395,7 +390,6 @@ pgamma=colMeans(gamma) # probabilité que l'indicatrice de chaque covariable soi
 rbind(colnames(X[,-1]),pgamma)
 
 ```
-
 
 Sur le jeu de données complet, les probabilités de choisir les covariables explicatives sont peu importantes : il semble que ces variables testées ensemble n'amènent pas à un choix de modèle pertinent.
 Les plus fortes probabilités d'inclusion dans le modèle sont pour les variables taux_acces_attendu_premiere_bac "taa.1bac" (33,36%), taux_acces_attendu_seconde_bac "taa.2bac"" (19,12%), taux brut de réussite "tbr.tot" (12,13%), taux attendu de réussite  "tra.tot" (11.67%). 
@@ -453,8 +447,6 @@ for(i in 1:niter){
     ml1 = marglkd(g1, Xred,n)
     ml2 = marglkd(g2, Xred,n)
     p = c(ml1,ml2)-min(ml1,ml2)
-    # On souhaite tirer depuis une Bernoulli, avec probabilité de tirer TRUE égale à exp(p[1])/(exp(p[1])+exp(p[2])).
-    # C'est ce que fait la ligne suivante. Notons que la fonction sample() calcule la constante de normalisation.
     newgamma[j] = sample(c(T,F), size=1, prob=exp(p))
   }
   gamma[i,] = newgamma
@@ -467,7 +459,6 @@ pgammared=colMeans(gamma) # probabilité que l'indicatrice de chaque covariable 
 rbind(colnames(Xred[,-1]),pgammared)
 
 ```
-
 
 Sur le jeu de données réduit à des variables non corrélées, deux d'entre elles ont une forte probabilité d'être retenue dans le modèle : le taux brut de réussite "tbr.tot" (60.3%) et le taux acces brut de la seconde au bac "tab.2bac"" (34.9%).
 
@@ -495,13 +486,15 @@ step(lm2,direction="both")
 
 Le choix de modèle à partir d'un nombre plus resteint de covariables (conservation des variables non corrélées), donne un AIC plus important (6238) que sur le modèle complet. La méthode sur jeu retreint ne retient que le taux de réussite totale brut. 
 
-##Mutations en mathématiques et anglais
+
+**En conclusion** : il semble que les covariables proposées dans ce jeu de données ne soient pas les plus pertinentes pour expliquer le nombre de points nécessaires à l'obtention d'une mutation dans un lycée de l'académie de Versailles.
+
+##Analyse des mutations en mathématiques et anglais
 
 La méthode de calcul des coefficients et leur significativité est celle de la regression bayésienne par l'espérance a posteriori (méthode 1).
 
 L'enseignement d'anglais correspond aux matières : ANGLAIS et LET ANGLAIS.
 L'enseignement des mathématiques correspond à la matière : MATHS.
-
 
 
 ```{r anaang}
@@ -588,22 +581,23 @@ table_ebcoef.anmat=data.frame(coef_estime_ANG=tebbeta.ang, pvaleur_ANG=tpvalue.a
 kable(table_ebcoef.anmat,format="markdown",digit=3)
 ```
 
-On remarque que les coefficients estimés des covariables, pour l'enseignement de l'Anglais sont de signes opposés à ceux obtenus pour l'enseignement des Maths. Donc leurs influences sont inverses sur le nombre de points de mutation.  
+On remarque que les coefficients estimés des covariables, pour l'enseignement de l'anglais sont de signes opposés à ceux obtenus pour l'enseignement des maths. Donc leurs influences sont inverses sur le nombre de points de mutation.  
 
 #Loi de Pareto
 
 On considère maintenant uniquement la variable *Barre* nombre de points nécessaire, sans tenir compte des covariables.
 
 ## Générer une loi de Pareto
-package : EnvStats
-fonction : rpareto(n=taille de l 'échantillon, location=m, shape = alpha)
+La loi de pareto est générée pour une variable Z à valeur sur [m,+∞] avec m>0 et α>0  
+Z~Pareto(m,α)  
 
-La loi de pareto est générée pour une variable Z à valeur sur [m,+infini].
-m>0, alpha>0
+Pour generer cette loi, nous utiliserons :  
+package : EnvStats
+fonction : rpareto(n=taille de l'échantillon, location=m, shape = α)
 
 ici m =21 (min du nombre de points observés pour Barre).
 
-densité de la variable Z selon 5 valeurs de alpha :
+densité de la variable Z selon 5 valeurs de α :
 
 ```{r pareto}
 set.seed(789)
@@ -645,7 +639,14 @@ dfz5=data.frame(
   alpha=factor(alpha5)
 )
 
-dfz=rbind.data.frame(dfz1,dfz2,dfz3,dfz4,dfz5)
+alpha6=30
+z6=rpareto(n, m, alpha6)
+dfz6=data.frame(
+  z=z6,
+  alpha=factor(alpha6)
+)
+
+dfz=rbind.data.frame(dfz1,dfz2,dfz3,dfz4,dfz5,dfz6)
 
 ggplot(dfz, aes(x=z, color=alpha)) +
   geom_density(size=1.1) +
@@ -654,19 +655,110 @@ ggplot(dfz, aes(x=z, color=alpha)) +
 
 ```
 
-Plus la valeur de alpha augmente, plus la densitié est forte sur les petites valeurs de Z et marque 2 oscillations puis tend vers 0 rapidement.
-Cependant, il semble qu'à partir d'une valeur seuil d'alpha (ici alpha=10), la densité perde en intensité et revienne à des niveaux déjà atteints par des valeurs d'alpha inférieures à ce seuil. Cette valeur seuil semble revenir périodiquement (ici on a observé le seuil pour alpha =10 et alpha=30).
+Plus la valeur d'alpha augmente, plus la densitié est forte sur les petites valeurs de Z et marque 2 oscillations, puis tend vers 0 rapidement.
+Cependant, il semble qu'à partir d'une valeur seuil d'alpha (ici α=10), la densité perde en intensité et revienne à des niveaux déjà atteints par des valeurs d'alpha inférieures à ce seuil. Cette valeur seuil semble revenir périodiquement (ici on a observé le seuil pour α=10 et α=30).
 
-##Loi a priori du paramètre alpha
+##Loi a priori du paramètre α
+
+Sans idée particulière sur la loi de α, testons la loi a priori de Jeffrey's π(α): cette loi est proportionnelle à la racine carrée de l'information de Fisher, notée I(α).   
+
+loi a priori de Jeffrey's : π(α) ∝ sqrt(I(α))  
+
+information de Fisher : I(α)=-E[∂²/∂α² (log L(α/Z))]  
+
+log vraisemblance : log L(α/Z)   
+
+fonction de vraisemblance : L(α/Z)= Produit(i=1 à n) Pareto(m,α)  
+L(α/Z)=Produit(i=1 à n) [α x (m puissance(α)) / (Z puissance(α+1))]
+
+On trouve I(α)=n/α², la loi a priori de Jeffrey's est proportionnelle à sqrt(n)/α
+
 
 ```{r prior}
+prior = function (alpha,n){ 
+  prior =n/(alpha^2) 
+  return (prior) 
+}
 
+#n=517
+#alpha=alpha1
+#curve((sqrt(n)/alpha1),col="blue")
 ```
 
 
-##Loi a posteriori du paramètre alpha
+##Loi a posteriori du paramètre α
 
-```{r posterior}
+La loi a posteriori de α s'écrit : π(α|Z) ∝ π(α)L(α|Z)  
+
+π(α)L(α|Z)=(sqrt(n)/α) X (α puissance(n)) X(m puissance(nα)) X exp(-(α+1) X somme(i=1 à n)[logZi])  
+
+π(α|Z) ∝ (α puissance(n-1)) X (m puissance(nα)) X exp(-(α+1) X somme(i=1 à n)[logZi])  
+
+```{r posterior, echo=TRUE}
+posterior = function (alpha, Z){ 
+  m=21 
+  n= dim[1]
+  post = (alpha^(n-1)) * (m^(n*alpha)) * exp(-(alpha+1)*sum(log(Z))) 
+  return (post) 
+  }
+
+```
+
+##Echantillon de la loi a posteriori du paramètre α
+
+```{r echant}
+set.seed(357)
+
+MH = function(alpha0, niter){
+  alpha = matrix(NA, nrow=niter, ncol=1)
+  alpha[1, ] = alpha0
+  acc = 0 # nombre d'acceptations
+
+  for(i in 2:niter){
+    proposal = prior(alpha,n)
+    logalpha = log(posterior(alpha, Y))-log(posterior(alpha[i-1,], Y))
+    if(log(runif(1)) < logalpha){
+      alpha[i,] = proposal
+      acc = acc + 1
+    }
+    else{
+      alpha[i, ] = alpha[i-1, ]
+    }
+  }
+  print(acc/niter) #proportion d'acceptations
+  return(alpha)
+}
+
+niter = 2e3
+a1 = MH(alpha1, niter)
+a2 = MH(alpha2, niter)
+a3 = MH(alpha3, niter)
+a4 = MH(alpha4, niter)
+a5 = MH(alpha5, niter)
+a6 = MH(alpha6, niter)
+
+# étudions la sortie de l'algorithme
+par(mfcol=c(3,3))
+i = 2 # Changer en i=2 pour l'autre paramètre
+# trace
+plot(a1[, i], type="l")
+plot(a2[, i], type="l")
+plot(a3[, i], type="l")
+
+# autocorrélations
+acf(a1[100:niter, i])
+acf(a2[100:niter, i])
+acf(a3[100:niter, i])
+
+# histogrammes
+hist(a1[100:niter, i], breaks=50)
+hist(a2[100:niter, i], breaks=50)
+hist(a3[100:niter, i], breaks=50)
+
+```
+
+##Analyse des mutations en mathématiques et anglais
+```{r parangmath}
 
 ```
 
