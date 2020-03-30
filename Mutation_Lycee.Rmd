@@ -18,8 +18,7 @@ td {  /* Table  */
 font-size: 12px;
 }
 h1.title {
-font-size: 14px;
-color: Blue;
+font-size: 16px;
 }
 
 h1 { /* Header 1 */
@@ -62,7 +61,6 @@ library(corrplot)
 library(EnvStats)
 library(zoo)
 
-
 ```
 
 
@@ -85,7 +83,7 @@ Covar= as.matrix(d[, (-6)]) # matrice des variables explicatives
 Y= as.matrix(d[,6]) # vecteur réponse Y=Barre
 ```
 
-**Description rapide des données :  **
+**Description rapide des données**
 
 Ce fichier est constitué de `r n` couples (établissement, discipline) différents (en ligne) et `r p` variables explicatives.
 La variable d'intérêt, le nombre de points pour chaque etablissement et discipline est *Barre*.
@@ -140,7 +138,7 @@ X = as.matrix(d[, -c(1,2,3,4,5,6,24,25)]) #variables numériques explicatives
 
 ```
 
-**Variables renomées**
+**Variables renommées**
 
 ```{r tabvar}
 table_var=data.frame(Variable_originale=c("effectif_presents_serie_l","effectif_presents_serie_es","effectif_presents_serie_s","taux_brut_de_reussite_serie_l","taux_brut_de_reussite_serie_es","taux_brut_de_reussite_serie_s","taux_reussite_attendu_serie_l","taux_reussite_attendu_serie_es","taux_brut_de_reussite_serie_s","effectif_de_seconde","effectif_de_premiere","taux_acces_brut_seconde_bac","taux_acces_attendu_seconde_bac","taux_acces_brut_premiere_bac","taux_acces_attendu_premiere_bac","taux_brut_de_reussite_total_series","taux_reussite_attendu_total_series" ),Variable_renommee= c("effpre.l","effpre.es","effpre.s","tbr.l","tbr.es","tbr.s","tra.l","tra.es","tra.s","eff.2","eff.1","tab.2bac","taa.2bac","tab.1bac","taa.1bac","tbr.tot","tra.tot"))
@@ -191,7 +189,7 @@ ggplot(d, aes(x=SpeMat, y=Barre)) +
 
 ```
 
-Le nombre de points moyens par type de matière est équivalent, avec un niveau un peu plus élévé pour l'EPS.
+Le nombre  moyen de points par type de matière est équivalent, avec un niveau un peu plus élévé pour l'EPS.
 
 **Barre en fonction du taux de réussite au bac**
 
@@ -204,8 +202,11 @@ ggplot(d, aes(x=RgtTbr, y=Barre)) +
       
 ```
 
-**Corrélations**
+Le nombre moyen de points necessaires augmente légèrement avec le taux de réussite au bac.  
 
+**Corrélations**   
+
+   
 ```{r cortrbtra}
 #coefficients de correlation
 
@@ -222,7 +223,7 @@ Nous observons de fortes corrélations entre :
    - les taux de réussite au bac bruts et attendus (variables tbr et tra) sauf pour la section littéraire :  
      tbr.s /tba.s / tbr.es /tba.es / tbr.tot /tba.tot  
      
-   - les taux d'accès au bac attendus et bruts (variables taa et tab), corrélées également au taux de réussite total au bac  
+   - les taux d'accès au bac attendus et bruts (variables taa et tab), qui sont également corrélés au taux de réussite total au bac  
     tab.2bac / taa.2bac / tab.1bac / taa.1bac
 
 # Regression linéaire 
@@ -230,6 +231,8 @@ Nous observons de fortes corrélations entre :
 Analyse sur l'ensemble sur le jeu de données complet  
 
 ## Regression linéaire bayésienne  
+
+Nous testerons 2 méthodes pour estimer les coefficients de regression linéaire bayésienne.  
 
 **Méthode 1 : Estimation des coefficients par l'espérance a posteriori**  
 
@@ -277,21 +280,14 @@ kable(table_ebcoef,format="markdown",digit=3)
 
 Nous constatons que seules 2 variables explicatives sont significativement différentes de zéro (pvaleur<5%):  
 
-  - taux de réussite en section L : betahat (tra.l) = -14.257  
-  - taux d'accès de la premiere au bac : betahat (tab.1bac) = -20.347   
+  - taux de réussite attendu au bac en section L : betahat (tra.l) = -14.257  
+  - taux d'accès brut de la premiere au bac : betahat (tab.1bac) = -20.347   
 
 
 **Méthode 2 : Fonction regresssion bayésienne : bas.lm**
 
-Affichage des 5 principaux modèles de probabilité représentés par leurs indicateurs d’inclusion avec :  
-
-  - le facteur Bayes (FB) de chaque modèle au modèle ayant la plus grande probabilité  marginale,  
-  - la probabilité a posteriori des modèles,  
-  - R2,  
-  - dim (qui comprend l’intercept),   
-  - le log de la probabilité marginale.  
-
-L'état des coefficients présente pour chaque coefficient de la régression :    
+Ici nous utilisons la fonction *bas.lm* du package *BAS* .
+L'état des coefficients obtenu présente pour chaque coefficient de la régression :    
 
 *postmean* : la moyenne marginale a posteriori du coefficient  
 *post SD* : l'écart-type a posteriori du coefficient  
@@ -309,13 +305,13 @@ Les probabilités que les coefficients soient différents de 0 sont toutes très
 
 Les graphiques de la regression bayésienne :  
 
-   - Le premier est un graphique des résidus et des valeurs ajustées dans le modèle bayésien de calcul de la moyenne. Idéalement, si nos hypothèses de modèle se maintiennent, nous ne verrons pas de valeurs aberrantes ou de variance importante.   
+   - Le premier est un graphique des résidus et des valeurs ajustées dans le modèle bayésien de calcul de la moyenne. 
 
 -  Le second graphique montre la probabilité cumulative des modèles dans l’ordre où ils sont échantillonnés.     
 
 -  Le troisième graphique montre la dimension de chaque modèle (le nombre de coefficients de régression, y compris l’interception) par rapport au log de la probabilité marginale du modèle.    
 
-- Le dernier graphique montre les probabilités marginales d’inclusion postérieure pour chacune des covariables. Les variables présentant des probabilités d’inclusion élevées (> 0,5 en rouge) sont généralement importantes pour expliquer les données ou les prévisions, mais les probabilités d’inclusion marginales peuvent être faibles s’il y a des prédicteurs fortement corrélés, semblables à la façon dont les p-valeurs peuvent être importantes en présence de multicollinéarité.  
+- Le dernier graphique montre les probabilités marginales d’inclusion postérieure pour chacune des covariables. Plus ces probabilités sont fortes (> 0,5 en rouge), plus les covariables seront un facteur explicatif important des données. Lorsque ces probabilités sont faibles, les covariables sont fortement corrélées. 
 
 ```{r rlbautograph}
 par(mfrow = c(2,2))
@@ -343,7 +339,7 @@ Il s'agit de choisir les covariables à partir de l'algorithme de GIBBS. Cet alg
 
 **Algorithme de GIBBS sur le jeu complet de données (variables numériques)**
 
-```{r marglkd}
+```{r marglkd, echo=TRUE}
 # fonction pour calculer la log-vraisemblance marginale
 
 marglkd = function(gamma, X, g=n){
@@ -586,6 +582,7 @@ On remarque que les coefficients estimés des covariables, pour l'enseignement d
 #Loi de Pareto
 
 On considère maintenant uniquement la variable *Barre* nombre de points nécessaire, sans tenir compte des covariables.
+Il s'agit de tester une 
 
 ## Générer une loi de Pareto
 La loi de pareto est générée pour une variable Z à valeur sur [m,+∞] avec m>0 et α>0  
@@ -639,14 +636,8 @@ dfz5=data.frame(
   alpha=factor(alpha5)
 )
 
-alpha6=30
-z6=rpareto(n, m, alpha6)
-dfz6=data.frame(
-  z=z6,
-  alpha=factor(alpha6)
-)
 
-dfz=rbind.data.frame(dfz1,dfz2,dfz3,dfz4,dfz5,dfz6)
+dfz=rbind.data.frame(dfz1,dfz2,dfz3,dfz4,dfz5)
 
 ggplot(dfz, aes(x=z, color=alpha)) +
   geom_density(size=1.1) +
@@ -656,7 +647,7 @@ ggplot(dfz, aes(x=z, color=alpha)) +
 ```
 
 Plus la valeur d'alpha augmente, plus la densitié est forte sur les petites valeurs de Z et marque 2 oscillations, puis tend vers 0 rapidement.
-Cependant, il semble qu'à partir d'une valeur seuil d'alpha (ici α=10), la densité perde en intensité et revienne à des niveaux déjà atteints par des valeurs d'alpha inférieures à ce seuil. Cette valeur seuil semble revenir périodiquement (ici on a observé le seuil pour α=10 et α=30).
+Cependant, il semble qu'à partir d'une valeur seuil d'alpha (ici α=10), la densité perde en intensité et revienne à des niveaux déjà atteints par des valeurs d'alpha inférieures à ce seuil (ici la densité pour α=20 revient à celle pour α=5).
 
 ##Loi a priori du paramètre α
 
@@ -676,13 +667,10 @@ On trouve I(α)=n/α², la loi a priori de Jeffrey's est proportionnelle à sqrt
 
 ```{r prior}
 prior = function (alpha,n){ 
-  prior =n/(alpha^2) 
+  prior =sqrt(n)/alpha
   return (prior) 
 }
 
-#n=517
-#alpha=alpha1
-#curve((sqrt(n)/alpha1),col="blue")
 ```
 
 
@@ -706,7 +694,7 @@ posterior = function (alpha, Z){
 
 ##Echantillon de la loi a posteriori du paramètre α
 
-```{r echant}
+```{r echant, eval=FALSE}
 set.seed(357)
 
 MH = function(alpha0, niter){
